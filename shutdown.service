@@ -1,0 +1,10 @@
+[Unit]
+Description=run shutdown script at login
+After=graphical.target
+
+[Service]
+ExecStart=/usr/local/bin/shutdown.sh
+Restart=no
+
+[Install]
+WantedBy=default.target
