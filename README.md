@@ -1,0 +1,127 @@
+--------------------------------------------------------
+AUTOMATICALLY SHUTDOWN YOUR SYSTEM WHEN RETRODECK QUITS!
+--------------------------------------------------------
+Since the 'quit' or 'power system off' options don't really shut down the system, I made this script to do it for me.
+Will work on both STEAMDECK and NOSTEAMDECK but I made it exclusively for my NOSTEAMDECK DIY PC console.
+
+These are the steps to follow:
+	1. Create the BASH script and place it in /usr/local/bin/sh
+	2. Give it execute rights (chmod +x <bash.sh>)
+	3. Create a service file to autorun the service and script at logon
+	4. When the user quits retrodeck, the system will also shutdown in 2secs
+	
+NOTE:
+IN ORDER TO USE IT, PLEASE LEAVE MY INFORMATION IN THE SCRIPT.
+
+------------------------	
+STEP#1: THE BASH SCRIPT!
+------------------------
+	· Open 'Notepad++' and copy and paste the script below into a new document	
+
+============= START OF SCRIPT...DO NOT COPY THIS LINE TO THE SCRIPT!!!!!!!!!!
+
+#!/bin/sh
+# please leave this information intact to use my script!
+# author: ortizimo
+# date: 2025.10.15
+# https://github.com/ortizimo
+
+set -euo pipefail
+
+#===== declared variables =====
+PROCESS_PATTERN="${PROCESS_PATTERN:-es-de}" 	# this is the name running with the PID
+CHECK_INTERVAL="${CHECK_INTERVAL:-3}"
+WAIT_BEFORE_SHUTDOWN="${WAIT_BEFORE_SHUTDOWN:-2}"
+SHUTDOWN_CMD="${SHUTDOWN_CMD:-sudo systemctl poweroff}"
+#==============================
+
+log() { printf '%s %s\n' "$(date '+%F %T')" "$*"; }
+
+detect_process() {
+	pgrep -f "${PROCESS_PATTERN}" >/dev/null 2>&1
+}
+
+# monitor program
+while true; do
+	detect_process && break
+	sleep 2
+done
+
+# program started - waiting for exit
+while true; do
+	! detect_process && break
+	sleep "${CHECK_INTERVAL}"
+done
+
+log "Program exited! Shutdown in ${WAIT_BEFORE_SHUTDOWN} seconds. Ctrl+C to cancel."
+trap 'log "Shutdown cancelled by user."; exit 0' INT
+
+for (( i=WAIT_BEFORE_SHUTDOWN; i>0; i-- )); do
+	printf '\rShutting down in %ds... (Ctrl+C to cancel)' "$i"
+	sleep 1
+done
+printf '\n'
+
+# executing shutdown
+eval "${SHUTDOWN_CMD}"
+
+============= END OF SCRIPT...DO NOT COPY THIS LINE TO THE SCRIPT!!!!!!!!!!
+
+	· Save it as 'shutdown.sh' then move it to your Linux OS
+	
+	· Give it executable rights:
+		o sudo chmod +x shutdown.sh
+	
+	· Move it to /usr/local/bin
+		o sudo mv shutdown.sh /usr/local/bin
+
+------------------------------------------------------
+STEP #2: AUTOMATICALLY RUN A SCRIPT WITHOUT A CRON JOB
+------------------------------------------------------
+	· Create a system service file:
+		o mkdir -p ~/.config/systemd/user
+		o sudo nano ~/.config/systemd/user/shutdown.service
+
+	· In shutdown.service, add:
+
+============= START OF SERVICE FILE...DO NOT COPY THIS LINE TO THE SCRIPT!!!!!!!!!!
+
+		[Unit]
+		Description=run shutdown script at login
+		After=graphical.target
+
+		[Service]
+		ExecStart=/usr/local/bin/shutdown.sh
+		Restart=no
+
+		[Install]
+		WantedBy=default.target
+
+============= END OF SERVICE FILE...DO NOT COPY THIS LINE TO THE SCRIPT!!!!!!!!!!
+		
+	· Ctrl+S to save, Ctrl+X to exit
+	
+	· Allow shutdown without a password:
+		o sudo visudo
+		o bazzite ALL=(ALL) NOPASSWD: /bin/systemctl poweroff
+			§ Find your specific Linux username in the terminal screen
+			§ e.g., bazzite@bazzite ~]$
+	
+	· Enable and start the service:
+		o systemctl --user daemon-reexec
+		o systemctl --user daemon-reload
+		o systemctl --user enable shutdown.service
+		o systemctl --user status shutdown.service
+			§ It may give you a ($'\r') command not found error
+			§ Rebooting DOES NOT fix it, SHUTTING down, waiting 10secs, then booting it back up does!
+		
+	· To manage it:
+		o systemctl --user status shutdown.service
+		o systemctl --user stop shutdown.service
+		o systemctl --user restart shutdown.service
+		o systemctl --user disable shutdown.service
+
+	· Programs used to manage system:
+		o WinSCP (move files)
+		o PuTTY (run commands)
+		o Sunshine/Moonshine VNC (test remotely) 
