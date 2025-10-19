@@ -1,6 +1,8 @@
 #!/bin/sh
 # author: ortizimo
 # date: 2025.10.15
+# version: 1.0
+# please leave my info in the script when using it
 
 set -euo pipefail
 
